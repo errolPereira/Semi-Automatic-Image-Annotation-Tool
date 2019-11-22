@@ -22,6 +22,6 @@ python main.py
 
 ### Acknowledgments
 
-1) [Semi Automatic Image Annotatror by Viraj Mavani](https://github.com/virajmavani/semi-auto-image-annotation-tool)
+1) [Semi Automatic Image Annotatror on Retinanet by Viraj Mavani](https://github.com/virajmavani/semi-auto-image-annotation-tool)
 
 2) [Keras implementation of RetinaNet object detection](https://github.com/fizyr/keras-retinanet)
