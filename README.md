@@ -72,7 +72,13 @@ python main.py
 
 ### Tested On:
 1) Windows 10
-Soon to test it on Linux environment as well.
+
+---
+**NOTE**
+
+Soon to test on Linux environment
+
+---
 
 ### Acknowledgments
 
