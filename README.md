@@ -70,7 +70,7 @@ Once you will click the train model button a window screen will pop up which wil
 python main.py
 ```
 
-###Tested On:
+### Tested On:
 1) Windows 10
 Soon to test it on Linux environment as well.
 
