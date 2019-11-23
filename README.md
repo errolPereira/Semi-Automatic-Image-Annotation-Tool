@@ -70,6 +70,10 @@ Once you will click the train model button a window screen will pop up which wil
 python main.py
 ```
 
+###Tested On:
+1) Windows 10
+Soon to test it on Linux environment as well.
+
 ### Acknowledgments
 
 1) [Semi Automatic Image Annotatror on Retinanet by Viraj Mavani](https://github.com/virajmavani/semi-auto-image-annotation-tool)
