@@ -176,9 +176,9 @@ class MainGUI:
         self.kernel_size = (4, 4)
         self.type = None
         self.backbone = 'resnet50'
-        self.annotation = b'C:\Users\errperei\Desktop\HPE\Errol_docs\ComputerVision\CapgeminiProjects\ImageAnnotation\annotations\annotations.csv'
-        self.calsses = b'C:\Users\errperei\Desktop\HPE\Errol_docs\ComputerVision\CapgeminiProjects\ImageAnnotation\annotations\classes.csv'
-        self.weights = b'C:\Users\errperei\Desktop\HPE\Errol_docs\ComputerVision\CapgeminiProjects\ImageAnnotation\weights\resnet50_coco_best_v2.1.0.h5'
+        self.annotation = '/annotations/annotations.csv'
+        self.calsses = '/annotations/classes.csv'
+        self.weights = '/weights/resnet50_coco_best_v2.1.0.h5'
         self.epochs = 50
         self.steps = 10000
         self.filter_img = None
@@ -320,29 +320,6 @@ class MainGUI:
         #closing
         self.parent.protocol('WM_DELETE_WINDOW', self.on_closing)
     
-    def populate_classes(self): 
-      algorithm = self.v.get()
-      print(algorithm)
-      self.cocoIntVars = []
-      if (algorithm == 0) or (algorithm == 2):
-          print('0 or 2')
-          self.labels = config.labels_to_names.values()
-      elif algorithm == 1:
-          print(1)
-          self.labels = config.ssd_classes
-      
-      print(self.labels)
-      
-
-      self.mb.menu = Menu(self.mb, tearoff=0)
-      self.mb["menu"] = self.mb.menu
-      ########################### Selecting the labels to detect ############################
-      for idxcoco, label_coco in enumerate(self.labels):
-        print(label_coco)
-        self.cocoIntVars.append(IntVar())
-        self.mb.menu.add_checkbutton(label=label_coco, variable=self.cocoIntVars[idxcoco])
-
-
     def open_image(self):
         self.filename = filedialog.askopenfilename(title="Select Image", filetypes=(("jpeg files", "*.jpg"),
                                                                                     ("all files", "*.*")))
@@ -439,7 +416,31 @@ class MainGUI:
         for item in curr_label_list:
             if item not in labelList:
                 self.labelListBox.insert(END, str(item))
+    
+        #function to populate labels based on algorithm selected
+    def populate_classes(self): 
+      '''
+      This function populates the classes menu according to the algorithm selected.
+      The resnet and YOLO models are trained on 80 classes whereas the SSD algorithm is 
+      trained on 21 classes
+      Input : None
+      Output : None Populates the  classes menu based on model selected.
+      '''
+      algorithm = self.v.get()
+      self.cocoIntVars = []
+      if (algorithm == 0) or (algorithm == 2):
+          self.labels = config.labels_to_names.values()
+      elif algorithm == 1:
+          self.labels = config.ssd_classes
 
+      self.mb.menu = Menu(self.mb, tearoff=0)
+      self.mb["menu"] = self.mb.menu
+      ########################### Selecting the labels to detect ############################
+      for idxcoco, label_coco in enumerate(self.labels):
+        print(label_coco)
+        self.cocoIntVars.append(IntVar())
+        self.mb.menu.add_checkbutton(label=label_coco, variable=self.cocoIntVars[idxcoco])
+    
     def mouse_click(self, event):
         # Check if Updating BBox
         if self.canvas.find_enclosed(event.x - 5, event.y - 5, event.x + 5, event.y + 5):
