@@ -129,8 +129,9 @@ class MainGUI:
         self.model_path = os.path.join('.', 'snapshots', 'resnet50_coco_best_v2.1.0.h5')
         #loading the model
         self.model = models.load_model(self.model_path, backbone_name='resnet50')
-        
+
         self.parent = master
+        self.center(self.parent, 912, 550)
         self.parent.title("Image Annotator")
         self.frame = Frame(self.parent)
         self.frame.pack(fill=BOTH, expand=1)
@@ -182,6 +183,7 @@ class MainGUI:
         self.steps = 10000
         self.filter_img = None
         self.train_selected = False
+        self.class_predict = False
 
         # initialize mouse state
         self.STATE = {'x': 0, 'y': 0}
@@ -221,7 +223,7 @@ class MainGUI:
         self.disp.pack(fill=X, side=TOP)
 		
 		#Menu button to select the models for detection.
-        self.modelMenu = Menubutton(self.ctrlPanel, text="Select Model Default : COCO", relief=RAISED)
+        self.modelMenu = Menubutton(self.ctrlPanel, text="Select Model Default:Resnet", relief=RAISED)
         self.modelMenu.pack(fill=X, side=TOP)
         self.modelMenu.menu = Menu(self.modelMenu, tearoff=0)
         self.modelMenu["menu"] = self.modelMenu.menu 
@@ -239,10 +241,10 @@ class MainGUI:
         self.delfilterBtn.pack(fill=X, side=TOP)
 		
 		#MenuButton containing all the labels that COCO model can predict.
-#        self.mb = Menubutton(self.ctrlPanel, text="COCO Classes for Suggestions", relief=RAISED)
-#        self.mb.pack(fill=X, side=TOP)
-#        self.mb.menu = Menu(self.mb, tearoff=0)
-#        self.mb["menu"] = self.mb.menu
+        self.mb = Menubutton(self.ctrlPanel, text="Choose Classes", relief=RAISED)
+        self.mb.pack(fill=X, side=TOP)
+        self.mb.menu = Menu(self.mb, tearoff=0)
+        self.mb["menu"] = self.mb.menu
         
 #        #Button to add the selected labels
 #        self.addCocoBtn = Button(self.ctrlPanel, text="+", command=self.add_labels_coco)
@@ -286,26 +288,16 @@ class MainGUI:
         self.labelListBox = Listbox(self.listPanel)
         self.labelListBox.pack(fill=X, side=TOP)
         
-        #labels for the coco model
-        self.cocoLabels = config.labels_to_names.values()
-        self.cocoIntVars = []
-        
+        #labels for the models
+        self.v = IntVar()
+        self.v.set(0)        
         
         ############################ Menu for selecting models ##################
         #Algorithm labels
         self.modelLabels = config.models_to_select.values()
-        self.v = IntVar()
-        self.v.set(0)
         
         for idxmodel, model_label in enumerate(self.modelLabels):
             self.modelMenu.menu.add_radiobutton(label=model_label, value=idxmodel, variable=self.v)
-
-        
-#        ########################### Selecting the labels to detect ############################
-#        for idxcoco, label_coco in enumerate(self.cocoLabels):
-#            self.cocoIntVars.append(IntVar())
-#            self.mb.menu.add_checkbutton(label=label_coco, variable=self.cocoIntVars[idxcoco])
-
         
         ############################# Menu for opencv filters ##################################
         # populating filters
@@ -326,6 +318,20 @@ class MainGUI:
         
         #closing
         self.parent.protocol('WM_DELETE_WINDOW', self.on_closing)
+    
+    
+    def populate_classes(self):
+        algorithm = self.v.get()
+        self.cocoIntVars = []
+        if (algorithm == 0) or (algorithm == 2):
+            self.labels = config.labels_to_names.values()
+        elif algorithm == 1:
+            self.labels = config.ssd_classes
+        
+        ########################### Selecting the labels to detect ############################
+        for idxcoco, label_coco in enumerate(self.labels):
+            self.cocoIntVars.append(IntVar())
+            self.mb.menu.add_checkbutton(label=label_coco, variable=self.cocoIntVars[idxcoco])
 
 
     def open_image(self):
@@ -606,7 +612,7 @@ class MainGUI:
 #                curr_label_list = list(curr_label_list)
 #                if list_label_coco not in curr_label_list:
 #                    self.labelListBox.insert(END, str(list_label_coco))
-#                    
+                    
     def add_filter_btn(self):
         curr_filter = []
         for filteridx, filter in enumerate(self.cvfilters):
@@ -685,7 +691,8 @@ class MainGUI:
 
     #---------------------funtion to get parameters of filters from user------------------
     def pop_param(self, noise_typ):
-      self.win = Toplevel(width=400, height = 300)
+      self.win = Toplevel(width=460, height=350)
+      self.center(self.win, 380, 100)
       
       #------------------------Gaussian Noise---------------------------------
       if noise_typ == 'gauss' or noise_typ == 'speck':
@@ -705,11 +712,11 @@ class MainGUI:
          
          #entry box/input box
          self.mean_field = Entry(self.win)
-         self.mean_field.grid(row=1, column=1, ipadx='100')
+         self.mean_field.grid(row=1, column=1, ipadx='80')
 
          
          self.var_field = Entry(self.win)
-         self.var_field.grid(row=2, column=1, ipadx='100')
+         self.var_field.grid(row=2, column=1, ipadx='80')
          
          submit = Button(self.win, text="Submit", fg="Black", 
                             bg="Red", command=self.set_input)
@@ -731,7 +738,7 @@ class MainGUI:
         
         #entry box/input box
         self.kernel_field = Entry(self.win)
-        self.kernel_field.grid(row=1, column=1, ipadx='100')
+        self.kernel_field.grid(row=1, column=1, ipadx='40')
         
         submit = Button(self.win, text="Submit", fg="Black", 
                             bg="Red", command=self.set_input)
@@ -754,9 +761,9 @@ class MainGUI:
         
         #entry box/input box
         self.amount_field = Entry(self.win)
-        self.amount_field.grid(row=1, column=1, ipadx='100')
+        self.amount_field.grid(row=1, column=1, ipadx='20')
         self.svp_field = Entry(self.win)
-        self.svp_field.grid(row=2 , column=1, ipadx='100')
+        self.svp_field.grid(row=2 , column=1, ipadx='20')
         
         submit = Button(self.win, text="Submit", fg="Black", 
                             bg="Red", command=self.set_input)
@@ -830,6 +837,17 @@ class MainGUI:
         opencvImage= open_cv_image[:, :, ::-1].copy()
         # opencvImage = cv2.cvtColor(np.array(self.img), cv2.COLOR_RGB2BGR)
         algorithm = self.v.get()
+        temp = []
+        listcoco = []
+        for listidxcoco, list_label_coco in enumerate(self.labels):
+            temp.append(self.cocoIntVars[listidxcoco].get())
+            if self.cocoIntVars[listidxcoco].get():
+                listcoco.append(list_label_coco)
+        
+        if sum(temp):
+            self.class_predict = True
+        else:
+            self.class_predict = False
 
         ################################### COCO Model ##################################
         if algorithm == 0:
@@ -838,13 +856,12 @@ class MainGUI:
             image = preprocess_image(opencvImage)
             boxes, scores, labels = model_coco.predict_on_batch(np.expand_dims(image, axis=0))
             for idx, (box, label, score) in enumerate(zip(boxes[0], labels[0], scores[0])):
-#                curr_label_list = self.labelListBox.get(0, END)
-#                curr_label_list = list(curr_label_list)
                 if score < 0.5:
                     continue
-#    
-#                if config.labels_to_names[label] not in curr_label_list:
-#                    continue
+                
+                if self.class_predict:    
+                    if config.labels_to_names[label] not in listcoco:
+                        continue
     
                 b = box.astype(int)
     
@@ -892,13 +909,18 @@ class MainGUI:
 
             np.set_printoptions(precision=2, suppress=True, linewidth=90)
             
+
             for box in y_pred_thresh[0]:
+                label = classes[int(box[0])]
+                if self.class_predict:
+                    if label not in listcoco:
+                        continue
                 # Transform the predicted bounding boxes for the 300x300 image to the original image dimensions.
                 x1 = int(box[2] * width / 300)
                 y1 = int(box[3] * height / 300)
                 x2 = int(box[4] * width / 300)
                 y2 = int(box[5] * height / 300)
-                label = ('{}: {:.2f}'.format(classes[int(box[0])], box[1])).split(':')[0]
+                
 
                 
                 self.bboxId = self.canvas.create_rectangle(x1, y1, 
@@ -981,9 +1003,11 @@ class MainGUI:
             self.processingLabel.config(text="Done")
     
     #function for displaying the training window      
-    def train_window(self):
+    def train_window(self): 
         self.save_classes()
-        self.train_win = Toplevel(width=600, height = 400)
+        self.train_win = Toplevel()
+        self.center(self.train_win, 360, 200)
+        
         self.train_win.wm_title(f'Training Parameters')
         self.train_win.iconphoto(False, imgicon)
         
@@ -1089,8 +1113,19 @@ class MainGUI:
     def on_closing(self):    
         if messagebox.askokcancel("Quit", "Do you want to quit?"):
             self.parent.destroy()
-
-
+                
+    def center(self, root, width, height):
+        if (width == None) & (height == None):
+            print('Enter')
+            print(root.winfo_width())
+            print(root.winfo_height())
+            width = root.winfo_width()
+            height = root.winfo_height()
+        root.update_idletasks()
+        x = (root.winfo_screenwidth() // 2) - (width // 2)
+        y = (root.winfo_screenheight() // 2) - (height // 2)
+        root.geometry('{}x{}+{}+{}'.format(width, height, x, y)) 
+        
 if __name__ == '__main__':
     root = Tk()
     imgicon = PhotoImage(file='icon.png')
