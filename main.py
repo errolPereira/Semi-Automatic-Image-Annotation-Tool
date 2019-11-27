@@ -228,6 +228,7 @@ class MainGUI:
         self.modelMenu.menu = Menu(self.modelMenu, tearoff=0)
         self.modelMenu["menu"] = self.modelMenu.menu 
         
+        
         #Menu button to select filters for images.
         self.filterMenu = Menubutton(self.ctrlPanel, text="Select Filters", relief=RAISED)
         self.filterMenu.pack(fill=X, side=TOP)
@@ -239,13 +240,11 @@ class MainGUI:
         self.addfilterBtn.pack(fill=X, side=TOP)
         self.delfilterBtn = Button(self.ctrlPanel, text="Reset Image", command=self.remove_filter_btn)
         self.delfilterBtn.pack(fill=X, side=TOP)
-		
-		#MenuButton containing all the labels that COCO model can predict.
+        
+        #MenuButton containing all the labels that COCO model can predict.
         self.mb = Menubutton(self.ctrlPanel, text="Choose Classes", relief=RAISED)
         self.mb.pack(fill=X, side=TOP)
-        self.mb.menu = Menu(self.mb, tearoff=0)
-        self.mb["menu"] = self.mb.menu
-        
+		
 #        #Button to add the selected labels
 #        self.addCocoBtn = Button(self.ctrlPanel, text="+", command=self.add_labels_coco)
 #        self.addCocoBtn.pack(fill=X, side=TOP)
@@ -288,16 +287,18 @@ class MainGUI:
         self.labelListBox = Listbox(self.listPanel)
         self.labelListBox.pack(fill=X, side=TOP)
         
+        
         #labels for the models
         self.v = IntVar()
         self.v.set(0)        
+        self.populate_classes()
         
         ############################ Menu for selecting models ##################
         #Algorithm labels
         self.modelLabels = config.models_to_select.values()
         
         for idxmodel, model_label in enumerate(self.modelLabels):
-            self.modelMenu.menu.add_radiobutton(label=model_label, value=idxmodel, variable=self.v)
+            self.modelMenu.menu.add_radiobutton(label=model_label, value=idxmodel, variable=self.v, command=self.populate_classes)
         
         ############################# Menu for opencv filters ##################################
         # populating filters
@@ -319,19 +320,27 @@ class MainGUI:
         #closing
         self.parent.protocol('WM_DELETE_WINDOW', self.on_closing)
     
-    
-    def populate_classes(self):
-        algorithm = self.v.get()
-        self.cocoIntVars = []
-        if (algorithm == 0) or (algorithm == 2):
-            self.labels = config.labels_to_names.values()
-        elif algorithm == 1:
-            self.labels = config.ssd_classes
-        
-        ########################### Selecting the labels to detect ############################
-        for idxcoco, label_coco in enumerate(self.labels):
-            self.cocoIntVars.append(IntVar())
-            self.mb.menu.add_checkbutton(label=label_coco, variable=self.cocoIntVars[idxcoco])
+    def populate_classes(self): 
+      algorithm = self.v.get()
+      print(algorithm)
+      self.cocoIntVars = []
+      if (algorithm == 0) or (algorithm == 2):
+          print('0 or 2')
+          self.labels = config.labels_to_names.values()
+      elif algorithm == 1:
+          print(1)
+          self.labels = config.ssd_classes
+      
+      print(self.labels)
+      
+
+      self.mb.menu = Menu(self.mb, tearoff=0)
+      self.mb["menu"] = self.mb.menu
+      ########################### Selecting the labels to detect ############################
+      for idxcoco, label_coco in enumerate(self.labels):
+        print(label_coco)
+        self.cocoIntVars.append(IntVar())
+        self.mb.menu.add_checkbutton(label=label_coco, variable=self.cocoIntVars[idxcoco])
 
 
     def open_image(self):
