@@ -80,9 +80,10 @@ model_yolo = load_model(yolo_path)
 #coco_path = os.path.join('.', 'snapshots', 'resnet50_coco_best_v2.1.0.h5')
 ##loading the model
 #model_coco = models.load_model(coco_path, backbone_name='resnet50')
-#
-#
-#resnet_model SSD
+
+
+
+#SSD
 #path for the saved pretrained model weights
 ssd_path = os.path.join('.', 'snapshots', 'VGG_VOC0712Plus_SSD_300x300_ft_iter_160000.h5')
 #loading the model
@@ -129,13 +130,16 @@ class MainGUI:
         self.model_path = os.path.join('.', 'snapshots', 'resnet50_coco_best_v2.1.0.h5')
         #loading the model
         self.model = models.load_model(self.model_path, backbone_name='resnet50')
-
+        
+        #Root windows properties
         self.parent = master
-        self.center(self.parent, 912, 550)
+        self.center(self.parent, 912, 568)
         self.parent.title("Image Annotator")
+        
+        #Parent Frame
         self.frame = Frame(self.parent)
         self.frame.pack(fill=BOTH, expand=1)
-        self.parent.resizable(width=False, height=False)
+        self.parent.resizable(width=False, height=False) #making the window unresizeable
 
         # Initialize class variables
         self.img = None
@@ -244,6 +248,13 @@ class MainGUI:
         #MenuButton containing all the labels that COCO model can predict.
         self.mb = Menubutton(self.ctrlPanel, text="Choose Classes", relief=RAISED)
         self.mb.pack(fill=X, side=TOP)
+        
+        #Custom trained model options
+        self.customModel = Label(self.ctrlPanel, text="Add Model").pack(fill=X, side=TOP)
+        self.modelText = Entry(self.ctrlPanel, text="Enter Model")
+        self.modelText.pack(fill=X, side=TOP)
+        self.addModelBtn = Button(self.ctrlPanel, text="add", command=self.add_custom_model)
+        self.addModelBtn.pack(fill=X, side=TOP)
 		
 #        #Button to add the selected labels
 #        self.addCocoBtn = Button(self.ctrlPanel, text="+", command=self.add_labels_coco)
@@ -297,8 +308,8 @@ class MainGUI:
         #Algorithm labels
         self.modelLabels = config.models_to_select.values()
         
-        for idxmodel, model_label in enumerate(self.modelLabels):
-            self.modelMenu.menu.add_radiobutton(label=model_label, value=idxmodel, variable=self.v, command=self.populate_classes)
+        for self.idxmodel, model_label in enumerate(self.modelLabels):
+            self.modelMenu.menu.add_radiobutton(label=model_label, value=self.idxmodel, variable=self.v, command=self.populate_classes)
         
         ############################# Menu for opencv filters ##################################
         # populating filters
@@ -320,9 +331,15 @@ class MainGUI:
         #closing
         self.parent.protocol('WM_DELETE_WINDOW', self.on_closing)
     
+    def custom_model_weights(self):
+        self.customWeightsInput = filedialog.askopenfilename(title="Select Weight", filetypes=(("h5 file", "*.h5"),
+                                                                                    ("all files", "*.*")), 
+                                                                                    initialdir='weights/')
+        self.add_model_win.focus_force()
+    
     def open_image(self):
         self.filename = filedialog.askopenfilename(title="Select Image", filetypes=(("jpeg files", "*.jpg"),
-                                                                                    ("all files", "*.*")))
+                                                                                    ("all files", "*.*")), )
         if not self.filename:
             return None
         self.filenameBuffer = self.filename
@@ -437,7 +454,6 @@ class MainGUI:
       self.mb["menu"] = self.mb.menu
       ########################### Selecting the labels to detect ############################
       for idxcoco, label_coco in enumerate(self.labels):
-        print(label_coco)
         self.cocoIntVars.append(IntVar())
         self.mb.menu.add_checkbutton(label=label_coco, variable=self.cocoIntVars[idxcoco])
     
@@ -860,7 +876,7 @@ class MainGUI:
             self.class_predict = False
 
         ################################### COCO Model ##################################
-        if algorithm == 0:
+        if (algorithm == 0) or (self.baseModel.lower() == 'resnet'):
             self.processingLabel.config(text="Processing")
             self.processingLabel.update_idletasks()
             image = preprocess_image(opencvImage)
@@ -1062,8 +1078,51 @@ class MainGUI:
         submit = Button(self.train_win, text="Start Training", fg="Black", 
                             bg="blue", command=self.training_model)
         submit.grid(row=7, column=1)
-        
+
+    #function to add a custom trained model
+    def add_custom_model(self):
+        if self.v.get() == 0:
+            print('Adding COCO model')
+            self.baseModel, self.customModel = self.modelText.get().split('_')
+            self.add_model_win = Toplevel()
+            self.add_model_win.wm_title('Adding Model')
+            self.add_model_win.focus_force()
+            self.add_model_win.iconphoto(False, imgicon)
+            #Resnet
+            if self.baseModel.lower() == 'resnet':
+                self.center(self.add_model_win, 340, 100)
+                
+                #heading
+                header = Label(self.add_model_win, text='Please provide the following inputs.')
+                header.grid(row=0, column=1, columnspan=2)
+                header.config(anchor=CENTER)
+                #Labels
+                self.customWeights = Label(self.add_model_win, text='Pretrained Weights')
+                self.customWeights.grid(row=1, column=0)
+                self.customClass = Label(self.add_model_win, text='Classes')
+                self.customClass.grid(row=2, column=0)
+                
+                #Entries
+                self.customWeightsEntry = Button(self.add_model_win, text='Select File', command=self.custom_model_weights)
+                self.customWeightsEntry.grid(row=1, column=1)
+                self.customClassEntry = Entry(self.add_model_win)
+                self.customClassEntry.grid(row=2, column=1)  
+                
+                submit = Button(self.add_model_win, text="Add Model", fg="Black", 
+                            bg="blue", command=self.add_model_menu)
+                submit.grid(row=3, column=1, rowspan=2)
+                submit.config(anchor=CENTER)
     
+    def add_model_menu(self):
+        if self.baseModel.lower() == 'resnet':
+            #path for the saved pretrained model weights
+            coco_path = self.customWeightsInput
+            #loading the model
+            model_coco = models.load_model(coco_path, backbone_name='resnet50')
+            self.idxmodel += 1
+            self.modelMenu.menu.add_radiobutton(label=self.customModel, value=self.idxmodel, variable=self.v, command=self.populate_classes)
+            self.add_model_win.destroy()
+
     #function for validating training input 
     def validateTrain(self, d, S):
         self.text.config(text='')
