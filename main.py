@@ -116,8 +116,6 @@ ssd_loss = SSDLoss(neg_pos_ratio=3, alpha=1.0)
 model_ssd.compile(optimizer=adam, loss=ssd_loss.compute_loss)
 ###############################################################################
 
-
-
 #paths of the annotations and classes file
 annot_path = 'annotations/annotations.csv'
 class_path = 'annotations/classes.csv'
@@ -142,6 +140,7 @@ class MainGUI:
         self.parent.resizable(width=False, height=False) #making the window unresizeable
 
         # Initialize class variables
+        self.algorithms = ['Resnet', 'SSD', 'YOLO']
         self.img = None
         self.img_og = None
         self.tkimg = None
@@ -188,6 +187,7 @@ class MainGUI:
         self.filter_img = None
         self.train_selected = False
         self.class_predict = False
+        self.new_classes = dict()
 
         # initialize mouse state
         self.STATE = {'x': 0, 'y': 0}
@@ -444,11 +444,16 @@ class MainGUI:
       Output : None Populates the  classes menu based on model selected.
       '''
       algorithm = self.v.get()
+      print(algorithm)
       self.cocoIntVars = []
       if (algorithm == 0) or (algorithm == 2):
           self.labels = config.labels_to_names.values()
       elif algorithm == 1:
           self.labels = config.ssd_classes
+      else:
+          print('3')
+          self.labels = self.customModelClass
+          
 
       self.mb.menu = Menu(self.mb, tearoff=0)
       self.mb["menu"] = self.mb.menu
@@ -1081,39 +1086,39 @@ class MainGUI:
 
     #function to add a custom trained model
     def add_custom_model(self):
-        if self.v.get() == 0:
-            print('Adding COCO model')
-            self.baseModel, self.customModel = self.modelText.get().split('_')
-            self.add_model_win = Toplevel()
-            self.add_model_win.wm_title('Adding Model')
-            self.add_model_win.focus_force()
-            self.add_model_win.iconphoto(False, imgicon)
-            #Resnet
-            if self.baseModel.lower() == 'resnet':
-                self.center(self.add_model_win, 340, 100)
-                
-                #heading
-                header = Label(self.add_model_win, text='Please provide the following inputs.')
-                header.grid(row=0, column=1, columnspan=2)
-                header.config(anchor=CENTER)
-                #Labels
-                self.customWeights = Label(self.add_model_win, text='Pretrained Weights')
-                self.customWeights.grid(row=1, column=0)
-                self.customClass = Label(self.add_model_win, text='Classes')
-                self.customClass.grid(row=2, column=0)
-                
-                #Entries
-                self.customWeightsEntry = Button(self.add_model_win, text='Select File', command=self.custom_model_weights)
-                self.customWeightsEntry.grid(row=1, column=1)
-                self.customClassEntry = Entry(self.add_model_win)
-                self.customClassEntry.grid(row=2, column=1)  
-                
-                submit = Button(self.add_model_win, text="Add Model", fg="Black", 
-                            bg="blue", command=self.add_model_menu)
-                submit.grid(row=3, column=1, rowspan=2)
-                submit.config(anchor=CENTER)
+        print('Adding COCO model')
+        self.baseModel, self.customModel = self.modelText.get().split('_')
+        self.add_model_win = Toplevel()
+        self.add_model_win.wm_title('Adding Model')
+        self.add_model_win.focus_force()
+        self.add_model_win.iconphoto(False, imgicon)
+        #Resnet
+        if self.baseModel.lower() == 'resnet':
+            self.center(self.add_model_win, 340, 100)
+            
+            #heading
+            header = Label(self.add_model_win, text='Please provide the following inputs.')
+            header.grid(row=0, column=1, columnspan=2)
+            header.config(anchor=CENTER)
+            #Labels
+            self.customWeights = Label(self.add_model_win, text='Pretrained Weights')
+            self.customWeights.grid(row=1, column=0)
+            self.customClass = Label(self.add_model_win, text='Classes')
+            self.customClass.grid(row=2, column=0)
+            
+            #Entries
+            self.customWeightsEntry = Button(self.add_model_win, text='Select File', command=self.custom_model_weights)
+            self.customWeightsEntry.grid(row=1, column=1)
+            self.customClassEntry = Entry(self.add_model_win)
+            self.customClassEntry.grid(row=2, column=1)  
+            
+            submit = Button(self.add_model_win, text="Add Model", fg="Black", 
+                        bg="blue", command=self.add_model_menu)
+            submit.grid(row=3, column=1, rowspan=2)
+            submit.config(anchor=CENTER)
     
     def add_model_menu(self):
+        self.customModelClass = self.customClassEntry.get().split(',')
         if self.baseModel.lower() == 'resnet':
             #path for the saved pretrained model weights
             coco_path = self.customWeightsInput
