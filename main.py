@@ -140,7 +140,6 @@ class MainGUI:
         self.parent.resizable(width=False, height=False) #making the window unresizeable
 
         # Initialize class variables
-        self.algorithms = ['Resnet', 'SSD', 'YOLO']
         self.img = None
         self.img_og = None
         self.tkimg = None
@@ -188,6 +187,7 @@ class MainGUI:
         self.train_selected = False
         self.class_predict = False
         self.new_classes = dict()
+        self.is_custom_model = False
 
         # initialize mouse state
         self.STATE = {'x': 0, 'y': 0}
@@ -451,8 +451,7 @@ class MainGUI:
       elif algorithm == 1:
           self.labels = config.ssd_classes
       else:
-          print('3')
-          self.labels = self.customModelClass
+          self.populate_custom_classes()
           
 
       self.mb.menu = Menu(self.mb, tearoff=0)
@@ -881,7 +880,7 @@ class MainGUI:
             self.class_predict = False
 
         ################################### COCO Model ##################################
-        if (algorithm == 0) or (self.baseModel.lower() == 'resnet'):
+        if (algorithm == 0):
             self.processingLabel.config(text="Processing")
             self.processingLabel.update_idletasks()
             image = preprocess_image(opencvImage)
@@ -920,7 +919,7 @@ class MainGUI:
             
             
         ################################ SSD Model #####################################
-        if algorithm == 1:
+        elif algorithm == 1:
             self.processingLabel.config(text="Processing")
             self.processingLabel.update_idletasks()
             width, height = self.img.size
@@ -977,7 +976,7 @@ class MainGUI:
             self.processingLabel.config(text="Done")
         
         ################################# YOLO MODEL ###################################
-        if algorithm == 2:
+        elif algorithm == 2:
             self.processingLabel.config(text="Processing")
             self.processingLabel.update_idletasks()
             width, height = self.img.size
@@ -1006,8 +1005,13 @@ class MainGUI:
             labels = list(config.labels_to_names.values())
             # get the details of the detected objects
             v_boxes, v_labels, v_scores = get_boxes(boxes, labels, class_threshold)
+                        
+
             # summarize what we found
             for i in range(len(v_boxes)):
+                if self.class_predict:
+                    if v_labels[i] not in listcoco:
+                        continue
                 box = v_boxes[i]
                 # get coordinates
                 y1, x1, y2, x2 = box.ymin, box.xmin, box.ymax, box.xmax
@@ -1032,6 +1036,10 @@ class MainGUI:
                 self.objectListBox.itemconfig(len(self.bboxIdList) - 1,
                                               fg=config.COLORS[(len(self.bboxIdList) - 1) % len(config.COLORS)])
             self.processingLabel.config(text="Done")
+        
+        else:
+            self.automate_custom_models()
+        
     
     #function for displaying the training window      
     def train_window(self): 
@@ -1086,36 +1094,35 @@ class MainGUI:
 
     #function to add a custom trained model
     def add_custom_model(self):
-        print('Adding COCO model')
         self.baseModel, self.customModel = self.modelText.get().split('_')
         self.add_model_win = Toplevel()
         self.add_model_win.wm_title('Adding Model')
         self.add_model_win.focus_force()
         self.add_model_win.iconphoto(False, imgicon)
         #Resnet
-        if self.baseModel.lower() == 'resnet':
-            self.center(self.add_model_win, 340, 100)
-            
-            #heading
-            header = Label(self.add_model_win, text='Please provide the following inputs.')
-            header.grid(row=0, column=1, columnspan=2)
-            header.config(anchor=CENTER)
-            #Labels
-            self.customWeights = Label(self.add_model_win, text='Pretrained Weights')
-            self.customWeights.grid(row=1, column=0)
-            self.customClass = Label(self.add_model_win, text='Classes')
-            self.customClass.grid(row=2, column=0)
-            
-            #Entries
-            self.customWeightsEntry = Button(self.add_model_win, text='Select File', command=self.custom_model_weights)
-            self.customWeightsEntry.grid(row=1, column=1)
-            self.customClassEntry = Entry(self.add_model_win)
-            self.customClassEntry.grid(row=2, column=1)  
-            
-            submit = Button(self.add_model_win, text="Add Model", fg="Black", 
-                        bg="blue", command=self.add_model_menu)
-            submit.grid(row=3, column=1, rowspan=2)
-            submit.config(anchor=CENTER)
+        self.center(self.add_model_win, 340, 100)
+        
+        #heading
+        header = Label(self.add_model_win, text='Please provide the following inputs.')
+        header.grid(row=0, column=1, columnspan=2)
+        header.config(anchor=CENTER)
+        #Labels
+        self.customWeights = Label(self.add_model_win, text='Pretrained Weights')
+        self.customWeights.grid(row=1, column=0)
+        self.customClass = Label(self.add_model_win, text='Classes')
+        self.customClass.grid(row=2, column=0)
+        
+        #Entries
+        self.customWeightsEntry = Button(self.add_model_win, text='Select File', command=self.custom_model_weights)
+        self.customWeightsEntry.grid(row=1, column=1)
+        self.customClassEntry = Entry(self.add_model_win)
+        self.customClassEntry.grid(row=2, column=1)  
+        
+        submit = Button(self.add_model_win, text="Add Model", fg="Black", 
+                    bg="blue", command=self.add_model_menu)
+        submit.grid(row=3, column=1, rowspan=2)
+        submit.config(anchor=CENTER)
+        
     
     def add_model_menu(self):
         self.customModelClass = self.customClassEntry.get().split(',')
@@ -1126,6 +1133,26 @@ class MainGUI:
             model_coco = models.load_model(coco_path, backbone_name='resnet50')
             self.idxmodel += 1
             self.modelMenu.menu.add_radiobutton(label=self.customModel, value=self.idxmodel, variable=self.v, command=self.populate_classes)
+            self.modelText.delete(0, END)
+            self.add_model_win.destroy()
+        elif self.baseModel.lower() == 'yolo':
+            #path for the saved pretrained model weights
+            yolo_path = self.customWeightsInput
+            #loading the model
+            model_yolo = load_model(yolo_path)
+            self.idxmodel += 1
+            self.modelMenu.menu.add_radiobutton(label=self.customModel, value=self.idxmodel, variable=self.v, command=self.populate_classes)
+            self.modelText.delete(0, END)
+            self.add_model_win.destroy()
+        elif self.baseModel.lower() == 'ssd':
+            print('SSD')
+            model_ssd.load_weights(ssd_path, by_name=True)
+            adam = Adam(lr=0.001, beta_1=0.9, beta_2=0.999, epsilon=1e-08, decay=0.0)
+            ssd_loss = SSDLoss(neg_pos_ratio=3, alpha=1.0)
+            model_ssd.compile(optimizer=adam, loss=ssd_loss.compute_loss)
+            self.idxmodel += 1
+            self.modelMenu.menu.add_radiobutton(label=self.customModel, value=self.idxmodel, variable=self.v, command=self.populate_classes)
+            self.modelText.delete(0, END)
             self.add_model_win.destroy()
 
     #function for validating training input 
@@ -1198,7 +1225,186 @@ class MainGUI:
         root.update_idletasks()
         x = (root.winfo_screenwidth() // 2) - (width // 2)
         y = (root.winfo_screenheight() // 2) - (height // 2)
-        root.geometry('{}x{}+{}+{}'.format(width, height, x, y)) 
+        root.geometry('{}x{}+{}+{}'.format(width, height, x, y))
+        
+    def automate_custom_models(self):
+        print('Predicting via Custom Model')
+        temp = []
+        listcoco = []
+        for listidxcoco, list_label_coco in enumerate(self.labels):
+            temp.append(self.cocoIntVars[listidxcoco].get())
+            if self.cocoIntVars[listidxcoco].get():
+                listcoco.append(list_label_coco)
+    
+        if sum(temp):
+            self.class_predict = True
+        else:
+            self.class_predict = False
+            
+        #------------------------------------ Predicting --------------------------    
+        if self.baseModel == 'resnet':
+            print('Resnet based predictions')
+            open_cv_image = np.array(self.img)
+            # Convert RGB to BGR
+            opencvImage= open_cv_image[:, :, ::-1].copy()
+            # opencvImage = cv2.cvtColor(np.array(self.img), cv2.COLOR_RGB2BGR)
+                
+            self.processingLabel.config(text="Processing")
+            self.processingLabel.update_idletasks()
+            image = preprocess_image(opencvImage)
+            boxes, scores, labels = model_coco.predict_on_batch(np.expand_dims(image, axis=0))
+            for idx, (box, label, score) in enumerate(zip(boxes[0], labels[0], scores[0])):
+                if score < 0.5:
+                    continue
+                
+                if self.class_predict:    
+                    if config.labels_to_names[label] not in listcoco:
+                        continue
+    
+                b = box.astype(int)
+    
+                self.bboxId = self.canvas.create_rectangle(b[0], b[1],
+                                                           b[2], b[3],
+                                                           width=1,
+                                                           outline=config.COLORS[len(self.bboxList) % len(config.COLORS)])
+                self.bboxList.append((b[0], b[1], b[2], b[3]))
+                o1 = self.canvas.create_oval(b[0] - 3, b[1] - 3, b[0] + 3, b[1] + 3, fill="red")
+                o2 = self.canvas.create_oval(b[2] - 3, b[1] - 3, b[2] + 3, b[1] + 3, fill="red")
+                o3 = self.canvas.create_oval(b[2] - 3, b[3] - 3, b[2] + 3, b[3] + 3, fill="red")
+                o4 = self.canvas.create_oval(b[0] - 3, b[3] - 3, b[0] + 3, b[3] + 3, fill="red")
+                self.bboxPointList.append(o1)
+                self.bboxPointList.append(o2)
+                self.bboxPointList.append(o3)
+                self.bboxPointList.append(o4)
+                self.bboxIdList.append(self.bboxId)
+                self.bboxId = None
+                self.objectLabelList.append(str(config.labels_to_names[label]))
+                self.objectListBox.insert(END, '(%d, %d) -> (%d, %d)' % (b[0], b[1], b[2], b[3]) + ': ' +
+                                          str(config.labels_to_names[label]))
+                self.objectListBox.itemconfig(len(self.bboxIdList) - 1,
+                                              fg=config.COLORS[(len(self.bboxIdList) - 1) % len(config.COLORS)])
+            self.processingLabel.config(text="Done")
+            
+            
+        elif self.baseModel.lower() == 'yolo':
+            self.processingLabel.config(text="Processing")
+            self.processingLabel.update_idletasks()
+            width, height = self.img.size
+            image = self.img
+            image = image.resize((416, 416), Image.BICUBIC)
+            image = img_to_array(image)
+            # scale pixel values to [0, 1]
+            image = image.astype('float32')
+            image /= 255.0
+            # add a dimension so that we have one sample
+            image = expand_dims(image, 0)
+            yhat = model_yolo.predict(image)
+            
+            
+            anchors = [[116,90, 156,198, 373,326], [30,61, 62,45, 59,119], [10,13, 16,30, 33,23]]
+            # define the probability threshold for detected objects
+            class_threshold = 0.6
+            boxes = list()
+            for i in range(len(yhat)):
+                # decode the output of the network
+                boxes += decode_netout(yhat[i][0], anchors[i], class_threshold, 416, 416)
+            # correct the sizes of the bounding boxes for the shape of the image
+            correct_yolo_boxes(boxes, height, width, 416, 416)
+            # suppress non-maximal boxes
+            do_nms(boxes, 0.5)
+            labels = list(config.labels_to_names.values())
+            # get the details of the detected objects
+            v_boxes, v_labels, v_scores = get_boxes(boxes, labels, class_threshold)
+            # summarize what we found
+            for i in range(len(v_boxes)):
+                if self.class_predict:
+                    if v_labels[i] not in listcoco:
+                        continue
+                box = v_boxes[i]
+                # get coordinates
+                y1, x1, y2, x2 = box.ymin, box.xmin, box.ymax, box.xmax
+                self.bboxId = self.canvas.create_rectangle(x1, y1, 
+                                                           x2, y2,
+                                                           width=1,
+                                                           outline=config.COLORS[len(self.bboxList) % len(config.COLORS)])
+                self.bboxList.append((int(x1), int(y1), int(x2), int(y2)))
+                o1 = self.canvas.create_oval(x1 - 3, y1 - 3, x1 + 3, y1 + 3, fill="red")
+                o2 = self.canvas.create_oval(x2 - 3, y1 - 3, x2 + 3, y1 + 3, fill="red")
+                o3 = self.canvas.create_oval(x2 - 3, y2 - 3, x2 + 3, y2 + 3, fill="red")
+                o4 = self.canvas.create_oval(x1 - 3, y2 - 3, x1 + 3, y2 + 3, fill="red")
+                self.bboxPointList.append(o1)
+                self.bboxPointList.append(o2)
+                self.bboxPointList.append(o3)
+                self.bboxPointList.append(o4)
+                self.bboxIdList.append(self.bboxId)
+                self.bboxId = None
+                self.objectLabelList.append(str(v_labels[i]))
+                self.objectListBox.insert(END, '(%d, %d) -> (%d, %d)' % (x1, y1, x2, y2) + ': ' +
+                                          str(v_labels[i]))
+                self.objectListBox.itemconfig(len(self.bboxIdList) - 1,
+                                              fg=config.COLORS[(len(self.bboxIdList) - 1) % len(config.COLORS)])
+            self.processingLabel.config(text="Done")
+            
+            
+        elif self.baseModel.lower() == 'ssd':
+            self.processingLabel.config(text="Processing")
+            self.processingLabel.update_idletasks()
+            width, height = self.img.size
+            image = self.img
+            image = image.resize((300, 300), Image.BICUBIC)
+            image = img_to_array(image)
+            # add a dimension so that we have one sample
+            image = expand_dims(image, 0)
+            
+            y_pred = model_ssd.predict(image)
+            
+            classes = config.ssd_classes
+            
+            confidence_threshold = 0.7
+            
+            y_pred_thresh = [y_pred[k][y_pred[k,:,1] > confidence_threshold] for k in range(y_pred.shape[0])]
+
+            np.set_printoptions(precision=2, suppress=True, linewidth=90)
+            
+
+            for box in y_pred_thresh[0]:
+                label = classes[int(box[0])]
+                if self.class_predict:
+                    if label not in listcoco:
+                        continue
+                # Transform the predicted bounding boxes for the 300x300 image to the original image dimensions.
+                x1 = int(box[2] * width / 300)
+                y1 = int(box[3] * height / 300)
+                x2 = int(box[4] * width / 300)
+                y2 = int(box[5] * height / 300)
+                
+
+                
+                self.bboxId = self.canvas.create_rectangle(x1, y1, 
+                                                           x2, y2,
+                                                           width=1,
+                                                           outline=config.COLORS[len(self.bboxList) % len(config.COLORS)])
+                self.bboxList.append((x1, y1, x2, y2))
+                o1 = self.canvas.create_oval(x1 - 3, y1 - 3, x1 + 3, y1 + 3, fill="red")
+                o2 = self.canvas.create_oval(x2 - 3, y1 - 3, x2 + 3, y1 + 3, fill="red")
+                o3 = self.canvas.create_oval(x2 - 3, y2 - 3, x2 + 3, y2 + 3, fill="red")
+                o4 = self.canvas.create_oval(x1 - 3, y2 - 3, x1 + 3, y2 + 3, fill="red")
+                self.bboxPointList.append(o1)
+                self.bboxPointList.append(o2)
+                self.bboxPointList.append(o3)
+                self.bboxPointList.append(o4)
+                self.bboxIdList.append(self.bboxId)
+                self.bboxId = None
+                self.objectLabelList.append(str(label))
+                self.objectListBox.insert(END, '(%d, %d) -> (%d, %d)' % (x1, y1, x2, y2) + ': ' +
+                                          str(label))
+                self.objectListBox.itemconfig(len(self.bboxIdList) - 1,
+                                              fg=config.COLORS[(len(self.bboxIdList) - 1) % len(config.COLORS)])
+            self.processingLabel.config(text="Done")
+        
+    
+    def populate_custom_classes(self):
+        self.labels = self.customModelClass
         
 if __name__ == '__main__':
     root = Tk()
