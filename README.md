@@ -72,17 +72,7 @@ python main.py
 
 ### Tested On:
 1) Windows 10
-
----
-**NOTE**
-
-Soon to test on Linux environment.
-
-I am working on some new updates and is constantly commiting changes to the repository. So it is likely that some of the features may not work at this point.
-Updates I am working on :
-1. Adding a custom pretrained resnet model.
-
----
+2) Linux (Ubuntu 18.04.3 LTS)
 
 ### Acknowledgments
 
