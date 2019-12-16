@@ -1,4 +1,4 @@
 opencv-python
 keras-retinanet==0.3.1
 keras==2.2.5
-tensorflow==1.14
+tensorflow==1.15.0
