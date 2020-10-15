@@ -1,4 +1,4 @@
-# Semi Automatic Image Annotataor
+# Semi Automatic Image Annotator
 
 Semi Automatic Image Annotation Toolbox with RetinaNet, SSD and YOLO as the suggesting algorithm. We can select from the three algorithms as the suggesting algorithm. Filters can be applied to images to create distorting images which will help in the training of the model. Also the training process is incoperated in the application. You can train a Retinanet model for custom objects in one click.
 
