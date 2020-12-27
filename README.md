@@ -21,7 +21,7 @@ conda create --name virtual_env anaconda
    
    b) [SSD weights](https://drive.google.com/uc?authuser=0&id=1fyDDUcIOSjeiP08vl1WCndcFdtboFXua&export=download)
    
-   c) [YOLO weights](https://drive.google.com/uc?id=1dckkRQjovO_2SRH1x8q7kKKGb5OACOQW&export=download)
+   c) [YOLO weights](https://pjreddie.com/media/files/yolov3.weights)
 
 
 ### Instructions
